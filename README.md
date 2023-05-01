@@ -14,6 +14,7 @@ By using the Software, you agree to be bound by the terms and conditions of the 
 
 If you do not agree to these terms and conditions, you are prohibited from using the Software and must immediately cease its use.
 
+## Usage
 
 ### Requirements
 ```
@@ -21,7 +22,6 @@ make
 wget
 tar
 ```
-
 
 ### Steps
 
