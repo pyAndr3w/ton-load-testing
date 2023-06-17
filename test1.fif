@@ -1,0 +1,96 @@
+/*
+  ton-load-test-1 - open-source smart-contract for load testing of tvm-based blockchains
+
+  Copyright (C) 2023 pyAndr3w <gutarev01@gmail.com>
+
+  This file is part of ton-load-testing.
+
+  ton-load-testing is free software: you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation,
+  either version 3 of the License, or (at your option) any later version.
+
+  ton-load-testing is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with ton-load-testing.
+  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+
+"ExtLib.fif" include
+"Asm.fif" include
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////// //
+
+
+$1 2 $| nip (hex-number) { 1000000 } ifnot =: flat_gas_price
+
+$4 (number) dup 0 = swap 2 = or abort"parse workchain error" =: workchain
+
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////// //
+
+
+<{ DROP PLDREF SETCODE ACCEPT ZERO MYADDR
+   NEWC b{010000} STSLICECONST STSLICE 111 STU ENDC
+   130 INT SENDRAWMSG
+}>c =: init-code
+
+<b newkeypair drop B, b> =: init-storage
+
+init-code init-storage null >state-init =: state-init
+
+workchain state-init hashu 2=: contract-addr
+
+contract-addr $raw-addr =: contract-addr$
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////// //
+
+
+<b
+  b{010000} s,
+  contract-addr Addr,
+  flat_gas_price Gram,
+  0 <[ 1 4 4 64 32 1 1 ]>T []sum u, 
+b> =: msg
+
+<[
+    <[ `send 3 msg ]>T { dup } 254 times
+]>T
+
+create-actions =: actions
+
+
+<{ actions PUSHREF c5 POP }>c =: test-code
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////// //
+
+
+<b
+    b{1000100} s,
+    contract-addr addr,
+    b{000011} s,
+    state-init ref,
+    b{1} s,
+    <b test-code ref, b> ref,
+b> =: messageX
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////// //
+
+
+$2 =: addr_path
+$3 =: boc_path
+
+
+contract-addr$ $>B addr_path B>file
+messageX 2 boc+>B boc_path B>file
+
+
+contract-addr$ type cr
+

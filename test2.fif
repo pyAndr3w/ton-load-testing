@@ -1,0 +1,90 @@
+/*
+  ton-load-test-2 - open-source smart-contract for load testing of tvm-based blockchains
+
+  Copyright (C) 2023 pyAndr3w <gutarev01@gmail.com>
+
+  This file is part of ton-load-testing.
+
+  ton-load-testing is free software: you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation,
+  either version 3 of the License, or (at your option) any later version.
+
+  ton-load-testing is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with ton-load-testing.
+  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+
+"ExtLib.fif" include
+"Asm.fif" include
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////// //
+
+
+$4 (number) dup 0 = swap 2 = or abort"parse workchain error" =: workchain
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////// //
+
+
+<{
+   LTIME ADDRAND
+   c4 PUSH CTOS PLDREF DUP                                                    // code code
+   NEWC STREF RANDU256 256 STUR ENDC SWAP                                     // data code 
+   NEWC b{00110} STSLICECONST STREF STREF                                     // b(state-init)
+   DUP ENDC HASHCU NEWC b{10} b{0} x{00} |+ |+ STSLICECONST 256 STU ENDC CTOS // b(state-init) addr
+   BALANCE FIRST 2 INT DIV 5000000 INT SUB SWAP                               // b(state-init) value addr
+   6 INT -ROT                                                                 // b(state-init) 6 value addr
+   NEWC b{010000} STSLICECONST STSLICE SWAP STGRAMS 108 STU STBREF ENDC       // message
+   DUP
+   0 INT SENDRAWMSG 
+   130 INT SENDRAWMSG
+}>c =: test-code
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////// //
+
+
+<{ c4 PUSH CTOS PLDREF SETCODE ACCEPT ZERO MYADDR
+   NEWC b{010000} STSLICECONST STSLICE 111 STU ENDC
+   130 INT SENDRAWMSG
+}>c =: init-code
+
+<b test-code ref, newkeypair drop B, b> =: init-storage
+
+init-code init-storage null >state-init =: state-init
+
+workchain state-init hashu 2=: contract-addr
+
+contract-addr $raw-addr =: contract-addr$
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////// //
+
+
+<b
+    b{1000100} s,
+    contract-addr addr,
+    b{000011} s,
+    state-init ref,
+    b{1} s,
+    <b b> ref,
+b> =: messageX
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////// //
+
+
+$2 =: addr_path
+$3 =: boc_path
+
+
+contract-addr$ $>B addr_path B>file
+messageX 2 boc+>B boc_path B>file
+
+
+contract-addr$ type cr
