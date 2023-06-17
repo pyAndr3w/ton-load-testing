@@ -1,4 +1,4 @@
-## ton-fork-load-test
+## ton-load-testing
 
 ## Disclaimer and License Agreement
 
